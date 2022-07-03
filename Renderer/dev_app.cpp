@@ -267,7 +267,9 @@ namespace end
 		if (mouseStates[D_VK_RMB])
 		{
 			float rotation_amount = deltaX * delta_time * camera_rotation_speed;
+			camera_view_matrix.InverseOrthoAffine();
 			camera_view_matrix.RotateY(-rotation_amount);
+			camera_view_matrix.InverseOrthoAffine();
 		}	
 	}
 
@@ -276,7 +278,9 @@ namespace end
 		if (mouseStates[D_VK_RMB])
 		{
 			float rotation_amount = deltaY * delta_time * camera_rotation_speed;
+			camera_view_matrix.InverseOrthoAffine();
 			camera_view_matrix.RotateX(-rotation_amount);
+			camera_view_matrix.InverseOrthoAffine();
 		}
 	}
 
