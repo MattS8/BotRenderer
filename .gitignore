@@ -430,3 +430,10 @@ FodyWeavers.xsd
 
 # JetBrains Rider
 *.sln.iml
+Renderer/ps_cube.cso
+
+Renderer/ps_line.cso
+
+Renderer/vs_cube.cso
+
+Renderer/vs_line.cso

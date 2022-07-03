@@ -5,7 +5,6 @@
 #include "pools.h"
 #include "emitter.h"
 #include <vector>
-//TODO include pools.h and anything else you might need here
 
 namespace end
 {
@@ -65,9 +64,11 @@ namespace end
 		return look_at_matrix;
 	}
 
-	matrixMath::Matrix4x4 turn_to()
+	float turn_to(float3 position, float3 target, float3 plane)
 	{
-		return matrixMath::IdentityMatrix4x4;
+		float3 turn_position = target - position;
+		turn_position.normalize(turn_position);
+		return turn_position.dot(turn_position, plane);
 	}
 
 	double calc_delta_time()
@@ -182,6 +183,13 @@ namespace end
 		matrices_initialized = true;
 	}
 
+	void dev_app_t::initialize_camera_view(view_t* view)
+	{
+		this->view = view;
+		camera_view_matrix.From(view->view_mat);
+		camera_view_initialized = true;
+	}
+
 	dev_app_t::dev_app_t()
 	{
 		std::cout << "Log whatever you need here.\n";
@@ -223,6 +231,12 @@ namespace end
 			draw_characters();
 		}
 
+		// Update Camera View
+		if (camera_view_initialized)
+		{
+			update_camera_view();
+		}
+
 		// Update Emitters
 		if (emitters_initialized)
 		{
@@ -246,18 +260,46 @@ namespace end
 				}
 			}
 		}
+	}
 
+	void dev_app_t::update_mouseX(long deltaX)
+	{
+		if (mouseStates[D_VK_RMB])
+		{
+			float rotation_amount = deltaX * delta_time * camera_rotation_speed;
+			camera_view_matrix.RotateY(-rotation_amount);
+		}	
+	}
+
+	void dev_app_t::update_mouseY(long deltaY)
+	{
+		if (mouseStates[D_VK_RMB])
+		{
+			float rotation_amount = deltaY * delta_time * camera_rotation_speed;
+			camera_view_matrix.RotateX(-rotation_amount);
+		}
+	}
+
+	void dev_app_t::update_camera_view()
+	{
+		float translation_x = (keyStates[D_VK_D] * camera_movement_speed * delta_time)
+			- (keyStates[D_VK_A] * camera_movement_speed * delta_time);
+		float translation_z = (keyStates[D_VK_W] * camera_movement_speed * delta_time)
+			- (keyStates[D_VK_S] * camera_movement_speed * delta_time);
+
+		camera_view_matrix.Translate(translation_x, 0, translation_z);
+		view->view_mat = camera_view_matrix.ToFloat4x4_a();
 	}
 
 	void dev_app_t::update_user_character_movement()
 	{
 		// Player Character Movement
-		float rotation = (keyStates[D_VK_A] * rotation_speed * delta_time) 
-			- (keyStates[D_VK_D] * rotation_speed * delta_time);
+		float rotation = (keyStates[VK_LEFT] * rotation_speed * delta_time) 
+			- (keyStates[VK_RIGHT] * rotation_speed * delta_time);
 		character_matrix.RotateY(rotation);
 
-		float translation_z = (keyStates[D_VK_W] * movement_speed * delta_time)
-			- (keyStates[D_VK_S] * movement_speed * delta_time);
+		float translation_z = (keyStates[VK_UP] * movement_speed * delta_time)
+			- (keyStates[VK_DOWN] * movement_speed * delta_time);
 		character_matrix.Translate(0, 0, translation_z);
 
 		float3 character_position = float3(
@@ -277,6 +319,19 @@ namespace end
 		watcher1_matrix = look_at(watcher1_position, character_position, world_up);
 
 		// Watcher 2 (Turn To)
+		float3 watcher2_position = float3(
+			watcher2_matrix[3][0],
+			watcher2_matrix[3][1],
+			watcher2_matrix[3][2]
+		);
+		matrixMath::Vertex rightPlane(1,0,0);
+		rightPlane = rightPlane * watcher2_matrix;
+		float3 rightPlanef3(rightPlane[0], rightPlane[1], rightPlane[2]);
+		rightPlanef3 = rightPlanef3.normalize(rightPlanef3);
+		float turn_amount = turn_to(watcher2_position, character_position, rightPlanef3);
+		watcher2_matrix.RotateY(turn_amount * delta_time * rotation_speed);
+		turn_amount = turn_to(watcher2_position, character_position, float3(0, 0, 1));
+		//watcher2_matrix.ro
 	}
 
 	void dev_app_t::update_sorted_pool_emitters()

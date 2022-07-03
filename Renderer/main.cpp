@@ -7,6 +7,7 @@
 #include <tchar.h>
 #include <iostream>
 #include <conio.h>
+#include <vector>
 
 #include "renderer.h"
 #include "dev_app.h"
@@ -117,6 +118,53 @@ int CALLBACK WinMain(
 	return (int)msg.wParam;
 }
 
+void handle_mouse_raw_input(LPARAM lParam)
+{
+	std::vector<char> rawBuffer;
+	UINT size;
+	// Read Size
+	if (GetRawInputData(
+		reinterpret_cast<HRAWINPUT>(lParam),
+		RID_INPUT,
+		nullptr,
+		&size,
+		sizeof(RAWINPUTHEADER)
+	) == -1)
+	{
+		std::cerr << "ERROR: Unable to process raw data!\n";
+		return;
+	}
+
+	// Resize
+	rawBuffer.resize(size);
+
+	// Read Input
+	if (GetRawInputData(
+		reinterpret_cast<HRAWINPUT>(lParam),
+		RID_INPUT,
+		rawBuffer.data(),
+		&size,
+		sizeof(RAWINPUTHEADER)
+	) == -1)
+	{
+		std::cerr << "ERROR: Unable to process raw data!\n";
+		return;
+	}
+
+	auto& ri = reinterpret_cast<const RAWINPUT&>(*rawBuffer.data());
+	if (ri.header.dwType == RIM_TYPEMOUSE)
+	{
+		if (ri.data.mouse.lLastX != 0)
+		{
+			dev_app.update_mouseX(ri.data.mouse.lLastX);
+		}
+		if (ri.data.mouse.lLastY != 0)
+		{
+			dev_app.update_mouseY(ri.data.mouse.lLastY);
+		}
+	}
+}
+
 //  FUNCTION: WndProc(HWND, UINT, WPARAM, LPARAM)
 //
 //  PURPOSE:  Processes messages for the main window.
@@ -125,8 +173,12 @@ int CALLBACK WinMain(
 //  WM_DESTROY  - post a quit message and return
 LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
+	
 	switch (message)
 	{
+	case WM_INPUT:
+		handle_mouse_raw_input(lParam);
+		break;
 	case WM_DESTROY:
 		PostQuitMessage(0);
 		break;
@@ -135,6 +187,12 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		break;
 	case WM_KEYDOWN:
 		dev_app.keyStates.set(wParam, true);
+		break;
+	case WM_RBUTTONDOWN:
+		dev_app.mouseStates.set(D_VK_RMB, true);
+		break;
+	case WM_RBUTTONUP:
+		dev_app.mouseStates.set(D_VK_RMB, false);
 		break;
 	default:
 		return DefWindowProc(hWnd, message, wParam, lParam);
@@ -175,6 +233,21 @@ MSG begin_main_loop()
 	MSG msg;
 
 	end::renderer_t renderer(main_hwnd);
+	
+	RAWINPUTDEVICE raw_input_device;
+	raw_input_device.usUsagePage = 0x01; // Mouse page
+	raw_input_device.usUsage = 0x02; // Mouse usage
+	raw_input_device.dwFlags = 0;
+	raw_input_device.hwndTarget = nullptr;
+
+	if (RegisterRawInputDevices(&raw_input_device, 1, sizeof(raw_input_device)) == FALSE)
+	{
+		std::cerr << "Unable to register device for raw mouse input!\n";
+	}
+	else
+	{
+		dev_app.initialize_camera_view(&renderer.default_view);
+	}
 
 	// Main application loop:
 	while (true)

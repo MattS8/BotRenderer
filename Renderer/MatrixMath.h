@@ -165,6 +165,68 @@ namespace matrixMath
 		{
 			return matrix[i];
 		}
+
+		end::float4x4_a ToFloat4x4_a()
+		{
+			end::float4x4_a newMatrix;
+			for (int i = 0; i < 4; ++i)
+			{
+				for (int j = 0; j < 4; ++j)
+				{
+					float val = this->matrix[i][j];
+					newMatrix[i][j] = val;
+				}
+			}
+			return newMatrix;
+		}
+
+		Matrix4x4 From(end::float4x4_a vecMatrix)
+		{
+			Matrix4x4 newMatrix;
+			for (int i = 0; i < 4; ++i)
+			{
+				end::float4_a line = vecMatrix[i];
+				for (int j = 0; j < 4; ++j)
+				{
+					newMatrix[i][j] = line[j];
+				}
+			}
+
+			*this = newMatrix;
+			return newMatrix;
+		}
+
+		Matrix4x4 InverseOrthoAffine()
+		{
+			Matrix3x3 transMatrix;
+			for (int i = 0; i < 3; ++i)
+			{
+				for (int j = 2; j >= 0; --j)
+					transMatrix[j][i] = matrix[i][j];
+			}
+
+			Matrix1x3 translateVector = { matrix[3][0], matrix[3][1], matrix[3][2] };
+			translateVector = translateVector * transMatrix;
+			translateVector = translateVector * -1;
+
+			matrix[0][0] = transMatrix[0][0];
+			matrix[0][1] = transMatrix[0][1];
+			matrix[0][2] = transMatrix[0][2];
+
+			matrix[1][0] = transMatrix[1][0];
+			matrix[1][1] = transMatrix[1][1];
+			matrix[1][2] = transMatrix[1][2];
+
+			matrix[2][0] = transMatrix[2][0];
+			matrix[2][1] = transMatrix[2][1];
+			matrix[2][2] = transMatrix[2][2];
+
+			matrix[3][0] = translateVector.matrix[0];
+			matrix[3][1] = translateVector.matrix[1];
+			matrix[3][2] = translateVector.matrix[2];
+
+			return *this;
+		}
 	};
 
 	const Matrix4x4 IdentityMatrix4x4 = {
@@ -172,6 +234,13 @@ namespace matrixMath
 		0, 1, 0, 0,
 		0, 0, 1, 0,
 		0, 0, 0, 1
+	};
+
+	const Matrix4x4 TestMatrix4x4 = {
+	1, 2, 3, 4,
+	5, 6, 7, 8,
+	9, 10, 11, 12,
+	13, 14, 15, 16
 	};
 
 	class Vertex {
