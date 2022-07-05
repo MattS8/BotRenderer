@@ -66,9 +66,8 @@ namespace end
 
 	float turn_to(float3 position, float3 target, float3 plane)
 	{
-		float3 turn_position = target - position;
-		turn_position.normalize(turn_position);
-		return turn_position.dot(turn_position, plane);
+		float3 turn_position = position - target;
+		return turn_position.dot(turn_position.normalize(turn_position), plane);
 	}
 
 	double calc_delta_time()
@@ -297,6 +296,8 @@ namespace end
 
 	void dev_app_t::update_user_character_movement()
 	{
+		static float debug_report_time = 0;
+		debug_report_time += delta_time;
 		// Player Character Movement
 		float rotation = (keyStates[VK_LEFT] * rotation_speed * delta_time) 
 			- (keyStates[VK_RIGHT] * rotation_speed * delta_time);
@@ -328,14 +329,26 @@ namespace end
 			watcher2_matrix[3][1],
 			watcher2_matrix[3][2]
 		);
-		matrixMath::Vertex rightPlane(1,0,0);
-		rightPlane = rightPlane * watcher2_matrix;
-		float3 rightPlanef3(rightPlane[0], rightPlane[1], rightPlane[2]);
-		rightPlanef3 = rightPlanef3.normalize(rightPlanef3);
-		float turn_amount = turn_to(watcher2_position, character_position, rightPlanef3);
+
+		float3 xComponent = float3(watcher2_matrix[0][0], watcher2_matrix[0][1], watcher2_matrix[0][2]);
+		float turn_amount = turn_to(watcher2_position, character_position, xComponent);
 		watcher2_matrix.RotateY(turn_amount * delta_time * rotation_speed);
-		turn_amount = turn_to(watcher2_position, character_position, float3(0, 0, 1));
-		//watcher2_matrix.ro
+
+		float3 yComponent = float3(watcher2_matrix[1][0], watcher2_matrix[1][1], watcher2_matrix[1][2]);
+		turn_amount = turn_to(watcher2_position, character_position, yComponent);
+		watcher2_matrix.RotateX(turn_amount * delta_time * rotation_speed);
+
+		watcher2_matrix[3][0] = watcher2_position[0];
+		watcher2_matrix[3][1] = watcher2_position[1];
+		watcher2_matrix[3][2] = watcher2_position[2];
+
+		if (debug_report_time >= .15f)
+		{
+			//std::cout << "Right Plane: " << rightPlanef3[0] << ", " << rightPlanef3[1] << ", " << rightPlanef3[2] << "\n";
+			std::cout << "Turn Amount: " << turn_amount << "\n";
+			debug_report_time = 0;
+		}
+
 	}
 
 	void dev_app_t::update_sorted_pool_emitters()

@@ -36,13 +36,15 @@ namespace end
 			float vertical_start = -horizontal_mid * increment + vertical_offset;
 			float vertical_end = horizontal_mid * increment;
 
-			for (int i = 0; i < horizontal_lines+1; i++)
+			for (int i = 2; i < horizontal_lines+1; i++)
 			{
 				float progPoint = (i - horizontal_mid) * increment;
 				float3 pos_start(horizontal_start, 0, progPoint);
 				float3 pos_end(horizontal_end, 0, progPoint);
 				add_line(pos_start, pos_end, color_horz_start, color_horz_end);
 			}
+
+			
 
 			for (int i = 0; i < vertical_lines+1; i++)
 			{
