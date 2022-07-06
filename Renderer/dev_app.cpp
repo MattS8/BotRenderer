@@ -263,7 +263,7 @@ namespace end
 
 	void dev_app_t::update_mouseX(long deltaX)
 	{
-		if (mouseStates[D_VK_RMB])
+		if (mouseStates[D_VK_RMB] || mouseStates[D_VK_LMB])
 		{
 			float rotation_amount = deltaX * delta_time * camera_rotation_speed;
 			camera_view_matrix.InverseOrthoAffine();
@@ -274,7 +274,7 @@ namespace end
 
 	void dev_app_t::update_mouseY(long deltaY)
 	{
-		if (mouseStates[D_VK_RMB])
+		if (mouseStates[D_VK_RMB] || mouseStates[D_VK_LMB])
 		{
 			float rotation_amount = deltaY * delta_time * camera_rotation_speed;
 			camera_view_matrix.InverseOrthoAffine();

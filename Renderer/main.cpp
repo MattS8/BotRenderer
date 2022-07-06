@@ -194,6 +194,12 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 	case WM_RBUTTONUP:
 		dev_app.mouseStates.set(D_VK_RMB, false);
 		break;
+	case WM_LBUTTONUP:
+		dev_app.mouseStates.set(D_VK_LMB, false);
+		break;
+	case WM_LBUTTONDOWN:
+		dev_app.mouseStates.set(D_VK_LMB, true);
+		break;
 	default:
 		return DefWindowProc(hWnd, message, wParam, lParam);
 		break;
