@@ -5,6 +5,7 @@
 #include "math_types.h"
 #include "MatrixMath.h"
 #include "view.h"
+#include "frustum_culling.h"
 
 #define VK_LEFT				0x25
 #define VK_UP				0x26
@@ -19,17 +20,20 @@
 #define D_VK_RMB			0x1
 #define D_VK_LMB			0x0
 
+#define INIT_PARTICLES		0
+#define INIT_EMITTERS		1
+#define INIT_GRID			2
+#define INIT_MATRICES		3
+#define INIT_CAMERA			4
+#define INIT_CHAR_CAMERA	5
+
 namespace end
 {
 	// Simple app class for development and testing purposes
 	class dev_app_t
 	{
 	private:
-		bool particles_initialized = false;
-		bool emitters_initialized = false;
-		bool grid_initialized = false;
-		bool matrices_initialized = false;
-		bool camera_view_initialized = false;
+		std::bitset<8> initializers;
 
 		matrixMath::Matrix4x4 character_matrix;
 		matrixMath::Matrix4x4 watcher1_matrix;
@@ -39,6 +43,9 @@ namespace end
 		void draw_character(float3 position, matrixMath::Matrix4x4& worldMatrix);
 	public:
 		view_t* view;
+		view_t character_view;
+		frustum_t character_frustum;
+		camera_properties character_cam_props;
 
 		float movement_speed = 4;
 		float rotation_speed = 100;
@@ -64,6 +71,8 @@ namespace end
 
 		void initialize_camera_view(view_t* view);
 
+		void initialize_character_camera();
+
 		// Update functions
 		void update_sorted_pool_emitters();
 
@@ -76,8 +85,12 @@ namespace end
 		void update_mouseX(long deltaX);
 		void update_mouseY(long deltaY);
 
+		void update_character_camera();
+
 		// Draw functions
 		void draw_characters();
+
+		void draw_character_camera();
 	};
 
 	struct grid_colors

@@ -2,6 +2,7 @@
 
 #include <array>
 #include "math_types.h"
+#include "view.h"
 
 // Note: You are free to make adjustments/additions to the declarations provided here.
 
@@ -9,21 +10,57 @@ namespace end
 {
 	struct sphere_t { float3 center; float radius; }; //Alterative: using sphere_t = float4;
 
-	struct aabb_t { float3 center; float3 extents; }; //Alternative: aabb_t { float3 min; float3 max; };
+	struct aabb_t 
+	{ 
+		union
+		{
+			float3 center;
+			float3 min;
+		};
+		union
+		{
+			float3 extents;
+			float3 max;
+		};
+	}; //Alternative: aabb_t { float3 min; float3 max; };
 
 	struct plane_t 
 	{ 
-		union {
-			struct {
-				float3 normal;
-				float offset;
-			};
-			float4 plane;
-		};
+		float3 normal;
+		float offset;
 
 	};  //Alterative: using plane_t = float4;
 
+	struct frustum_points
+	{
+		union
+		{
+			struct
+			{
+				float3 NBL;
+				float3 NBR;
+				float3 NTL;
+				float3 NTR;
+				float3 FBL;
+				float3 FBR;
+				float3 FTL;
+				float3 FTR;
+			};
+			float3 points[8];
+		};
+	};
 	using frustum_t = std::array<plane_t, 6>;
+
+	struct camera_properties
+	{
+		float CAMERA_ASPECT_RATIO = 9.0f / 16.0f;
+		float cameraWidth = 2;
+		float cameraLength = 10;
+		float cameraHeight = cameraWidth * CAMERA_ASPECT_RATIO;
+		float cameraNearWidth = cameraWidth / 10;
+		float cameraNearHeight = cameraHeight / 10;
+		float nearViewCutoff = 2;
+	};
 
 	// Calculates the plane of a triangle from three points.
 	plane_t calculate_plane(float3 a, float3 b, float3 c);
@@ -35,7 +72,8 @@ namespace end
 	// 
 	// Calculate the frustum planes.
 	// Use your debug renderer to draw the plane normals as line segments.
-	void calculate_frustum(frustum_t& frustum, const view_t& view);
+	void calculate_frustum(camera_properties& cam_props, frustum_t& frustum, 
+		const view_t& view);
 
 	// Calculates which side of a plane the sphere is on.
 	//

@@ -6,34 +6,45 @@
 #include "emitter.h"
 #include <vector>
 
-namespace end
+
+namespace
 {
 	// Time stuff
 	double delta_time = 0.0;
 	double particle_lifetime = 1.0;
 
 	// Colors
-	grid_colors debug_grid_colors = {};
-	std::vector<float4> particle_colorsRed;
-	std::vector<float4> particle_colorsGreen;
-	std::vector<float4> particle_colorsBlue;
-	std::vector<float4> particle_colorsRG;
-	std::vector<float4> particle_colorsBG;
-	std::vector<float4> particle_colorsBR;
-	std::vector<float4> particle_colorsRGB;
+	end::grid_colors debug_grid_colors = {};
+	std::vector<end::float4> particle_colorsRed;
+	std::vector<end::float4> particle_colorsGreen;
+	std::vector<end::float4> particle_colorsBlue;
+	std::vector<end::float4> particle_colorsRG;
+	std::vector<end::float4> particle_colorsBG;
+	std::vector<end::float4> particle_colorsBR;
+	std::vector<end::float4> particle_colorsRGB;
+	end::float4 camera_frustum_color = end::float4(0.8f, 0.8f, 0.4f, 1.0f);
 
 	// Pools
-	sorted_pool_t<particle, 300> sorted_pool;
-	pool_t<particle, 1000> free_pool;
+	end::sorted_pool_t<end::particle, 300> sorted_pool;
+	end::pool_t<end::particle, 1000> free_pool;
 
 	// Emitter
-	std::vector<emitter> free_pool_emitters;
-	std::vector<emitter> sorted_pool_emitters;
+	std::vector<end::emitter> free_pool_emitters;
+	std::vector<end::emitter> sorted_pool_emitters;
 
 	// Constants
-	const float3 Gravity = float3(0, -9.8f, 0);
-	const float3 ParticleSize = float3(1.0f, 1.0f, 1.0f);
+	const end::float3 Gravity = end::float3(0, -9.8f, 0);
+	const end::float3 ParticleSize = end::float3(1.0f, 1.0f, 1.0f);
+}
 
+namespace end
+{
+	double dev_app_t::get_delta_time()const
+	{
+		return delta_time;
+	}
+
+#pragma region Calculation Functions
 	matrixMath::Matrix4x4 look_at(float3 position, float3 target, float3 world_up)
 	{
 		matrixMath::Matrix4x4 look_at_matrix;
@@ -88,12 +99,9 @@ namespace end
 			(rand() / (float)RAND_MAX) * (vel.maxY - vel.minY) + vel.minY,
 			(rand() / (float)RAND_MAX) * (vel.maxZ - vel.minZ) + vel.minZ);
 	}
+#pragma endregion
 
-	double dev_app_t::get_delta_time()const
-	{
-		return delta_time;
-	}
-
+#pragma region Initialization Functions
 	void dev_app_t::initialize_grid()
 	{
 		debug_grid_colors.increments[0] = { 0.5f, 0.6f, 0.4f, 1.0f };
@@ -105,7 +113,7 @@ namespace end
 		debug_grid_colors.vertical_start = { 0.0f, 1.0f, 0.0f, 1.0f };
 		debug_grid_colors.vertical_end = { 0.0f, 1.0f, 1.0f, 1.0f };
 
-		grid_initialized = true;
+		initializers[INIT_GRID] = true;
 	}
 
 	void dev_app_t::initialize_particles()
@@ -127,12 +135,12 @@ namespace end
 			particle_colorsRGB.push_back(float4(1 - varColor, varColor, 1 - varColor, 1.0f));
 		}
 
-		particles_initialized = true;
+		initializers[INIT_PARTICLES] = true;
 	}
 
 	void dev_app_t::initialize_emitters()
 	{
-		if (!particles_initialized)
+		if (!initializers[INIT_PARTICLES])
 			initialize_particles();
 
 		emitter sorted_emitter =
@@ -168,7 +176,7 @@ namespace end
 		free_emitter.particle_colors = particle_colorsBG;
 		free_pool_emitters.push_back(free_emitter);
 
-		emitters_initialized = true;
+		initializers[INIT_EMITTERS] = true;
 	}
 
 	void dev_app_t::initialize_world_matrices()
@@ -179,88 +187,44 @@ namespace end
 		watcher1_matrix.Translate(-6, 4, -5);
 		watcher2_matrix = matrixMath::IdentityMatrix4x4;
 		watcher2_matrix.Translate(6, 3, 3);
-		matrices_initialized = true;
+
+		initializers[INIT_MATRICES] = true;
 	}
 
 	void dev_app_t::initialize_camera_view(view_t* view)
 	{
 		this->view = view;
 		camera_view_matrix.From(view->view_mat);
-		camera_view_initialized = true;
+
+		initializers[INIT_CAMERA] = true;
 	}
 
-	dev_app_t::dev_app_t()
+	void dev_app_t::initialize_character_camera()
 	{
-		std::cout << "Log whatever you need here.\n";
+		if (!initializers[INIT_MATRICES])
+			return;
 
-		// Initialize Debug Grid Colors
-		initialize_grid();
+		float3 charcter_position = float3(
+			character_matrix[3][0],
+			character_matrix[3][1],
+			character_matrix[3][2]
+		);
 
-		// Initialize particle colors
-		//initialize_particles();
+		matrixMath::Matrix4x4 char_view_mat = character_matrix;
 
-		// Initialize Emitters
-		//initialize_emitters();
+		float3 forward_vector = charcter_position.normalize(charcter_position) 
+			* character_cam_props.nearViewCutoff;
+		char_view_mat[3][0] += forward_vector.x;
+		char_view_mat[3][1] += forward_vector.y;
+		char_view_mat[3][2] += forward_vector.z;
 
-		// Initialize World Matrices
-		initialize_world_matrices();
+		character_view.view_mat = char_view_mat.ToFloat4x4_a();
 
+		initializers[INIT_CHAR_CAMERA] = true;
 	}
+#pragma endregion
 
-	// ******** UPDATE FUNCTIONS ******** //
-
-	void dev_app_t::update()
-	{
-		delta_time = calc_delta_time();
-
-		// Update Grid
-		if (grid_initialized)
-		{
-			debug_grid_colors.update();
-			end::debug_renderer::add_grid(20, 20,
-				debug_grid_colors.horizontal_start, debug_grid_colors.horizontal_end,
-				debug_grid_colors.vertical_start, debug_grid_colors.vertical_end);
-		}
-
-		// Update Matrix-related functions
-		if (matrices_initialized)
-		{
-			update_user_character_movement();
-			
-			draw_characters();
-		}
-
-		// Update Camera View
-		if (camera_view_initialized)
-		{
-			update_camera_view();
-		}
-
-		// Update Emitters
-		if (emitters_initialized)
-		{
-			update_sorted_pool_emitters();
-			update_free_pool_emitters();
-
-			// Draw particles
-			for (int i = 0; i < sorted_pool.size(); i++)
-				end::debug_renderer::add_line(sorted_pool[i].pos,
-					sorted_pool[i].get_endpoint(),
-					sorted_pool[i].color);
-
-			for (int i = 0; i < free_pool_emitters.size(); i++)
-			{
-				emitter& em = free_pool_emitters[i];
-				for (auto itter = em.indices.begin(); itter != em.indices.end(); itter++)
-				{
-					end::debug_renderer::add_line(free_pool[*itter].pos,
-						free_pool[*itter].get_endpoint(),
-						free_pool[*itter].color);
-				}
-			}
-		}
-	}
-
+#pragma region Update Functions
 	void dev_app_t::update_mouseX(long deltaX)
 	{
 		if (mouseStates[D_VK_RMB] || mouseStates[D_VK_LMB])
@@ -269,7 +233,7 @@ namespace end
 			camera_view_matrix.InverseOrthoAffine();
 			camera_view_matrix.RotateY(-rotation_amount);
 			camera_view_matrix.InverseOrthoAffine();
-		}	
+		}
 	}
 
 	void dev_app_t::update_mouseY(long deltaY)
@@ -299,7 +263,7 @@ namespace end
 		static float debug_report_time = 0;
 		debug_report_time += delta_time;
 		// Player Character Movement
-		float rotation = (keyStates[VK_LEFT] * rotation_speed * delta_time) 
+		float rotation = (keyStates[VK_LEFT] * rotation_speed * delta_time)
 			- (keyStates[VK_RIGHT] * rotation_speed * delta_time);
 		character_matrix.RotateY(rotation);
 
@@ -312,6 +276,16 @@ namespace end
 			character_matrix[3][1],
 			character_matrix[3][2]
 		);
+
+		// Player Character Camera
+		if (initializers[INIT_CHAR_CAMERA])
+		{
+			matrixMath::Matrix4x4 char_view_mat = {};
+			char_view_mat = char_view_mat.From(character_view.view_mat);
+			char_view_mat.RotateY(rotation);
+			char_view_mat.Translate(0, 0, translation_z);
+			character_view.view_mat = char_view_mat.ToFloat4x4_a();
+		}
 
 		float3 world_up(0, 1, 0);
 
@@ -345,7 +319,7 @@ namespace end
 		if (debug_report_time >= .15f)
 		{
 			//std::cout << "Right Plane: " << rightPlanef3[0] << ", " << rightPlanef3[1] << ", " << rightPlanef3[2] << "\n";
-			std::cout << "Turn Amount: " << turn_amount << "\n";
+			//std::cout << "Turn Amount: " << turn_amount << "\n";
 			debug_report_time = 0;
 		}
 
@@ -374,7 +348,7 @@ namespace end
 		}
 
 		int ranProc = (rand() % 100);
-		int max_per_frame = (10 * delta_time) + ranProc > 99 ? 1 : 0 ;
+		int max_per_frame = (10 * delta_time) + ranProc > 99 ? 1 : 0;
 
 		// Spawn new particles for each emitter using sorted_pool
 		for (int i = 0; i < sorted_pool_emitters.size() && i < max_per_frame; i++)
@@ -392,7 +366,7 @@ namespace end
 			}
 			else
 			{
-				std::cerr << "ERROR: emitter -> update_sorted_pool could not allocate " 
+				std::cerr << "ERROR: emitter -> update_sorted_pool could not allocate "
 					<< i << " particle!\n";
 			}
 		}
@@ -445,15 +419,44 @@ namespace end
 				}
 				else
 				{
-					std::cerr << "ERROR: emitter -> update_free_pool could not allocate " 
+					std::cerr << "ERROR: emitter -> update_free_pool could not allocate "
 						<< i << " particle!\n";
 				}
 			}
 		}
 	}
 
-	// ******** DRAW FUNCTIONS ******** // 
+	void dev_app_t::update_character_camera()
+	{
+		calculate_frustum(character_cam_props, character_frustum, character_view);
 
+		// TODO check bounding boxes
+	}
+
+	void grid_colors::update()
+	{
+		for (int i = 0; i < 4; i++)
+		{
+			for (int j = 0; j < 3; j++)
+			{
+				float newVal = colors[i][j] + (increments[i][j] * delta_time);
+				if (newVal > 1.0f)
+				{
+					newVal = 1.0f;
+					increments[i][j] *= -1;
+				}
+				else if (newVal < 0.0f)
+				{
+					newVal = 0.0f;
+					increments[i][j] *= -1;
+				}
+
+				colors[i][j] = newVal;
+			}
+		}
+	}
+
+#pragma region Draw Functions
 	void dev_app_t::draw_character(float3 position, matrixMath::Matrix4x4& worldMatrix)
 	{
 		static const float line_length = 1;
@@ -513,26 +516,140 @@ namespace end
 		draw_character(watcher2_position, watcher2_matrix);
 	}
 
-	void grid_colors::update()
+	void dev_app_t::draw_character_camera()
 	{
-		for (int i = 0; i < 4; i++)
+		// Calculate points
+		float3 camera_pos = float3(
+			character_view.view_mat[3][0],
+			character_view.view_mat[3][1],
+			character_view.view_mat[3][2]);
+		frustum_points points = {
+			/*NBL*/
+			float3(camera_pos.x - (character_cam_props.cameraWidth / 2),
+				camera_pos.y - (character_cam_props.cameraHeight) / 2,
+				camera_pos.z),
+			/*NBR*/
+			float3(camera_pos.x + (character_cam_props.cameraWidth / 2),
+				camera_pos.y - (character_cam_props.cameraHeight) / 2,
+				camera_pos.z),
+			/*NTL*/
+			float3(camera_pos.x - (character_cam_props.cameraWidth / 2),
+				camera_pos.y + (character_cam_props.cameraHeight) / 2,
+				camera_pos.z),
+			/*NTR*/
+			float3(camera_pos.x + (character_cam_props.cameraWidth / 2),
+				camera_pos.y + (character_cam_props.cameraHeight) / 2,
+				camera_pos.z),
+			/*FBL*/
+			float3(camera_pos.x - (character_cam_props.cameraWidth / 2),
+				camera_pos.y - (character_cam_props.cameraHeight) / 2,
+				camera_pos.z + character_cam_props.cameraLength),
+			/*FBR*/
+			float3(camera_pos.x + (character_cam_props.cameraWidth / 2),
+				camera_pos.y - (character_cam_props.cameraHeight) / 2,
+				camera_pos.z + character_cam_props.cameraLength),
+			/*FTL*/
+			float3(camera_pos.x - (character_cam_props.cameraWidth / 2),
+				camera_pos.y + (character_cam_props.cameraHeight) / 2,
+				camera_pos.z + character_cam_props.cameraLength),
+			/*FTR*/
+			float3(camera_pos.x + (character_cam_props.cameraWidth / 2),
+				camera_pos.y + (character_cam_props.cameraHeight) / 2,
+				camera_pos.z + character_cam_props.cameraLength)
+		};
+
+		// Draw Near Frame
+		end::debug_renderer::add_line(points.NBL, points.NTL, camera_frustum_color);
+		end::debug_renderer::add_line(points.NTL, points.NTR, camera_frustum_color);
+		end::debug_renderer::add_line(points.NTR, points.NBR, camera_frustum_color);
+		end::debug_renderer::add_line(points.NBR, points.NBL, camera_frustum_color);
+
+		// Draw Far Frame
+
+		// Draw Edges
+
+
+	}
+#pragma endregion
+
+#pragma endregion
+
+	dev_app_t::dev_app_t()
+	{
+		std::cout << "Log whatever you need here.\n";
+
+		// Initialize Debug Grid Colors
+		initialize_grid();
+
+		// Initialize particle colors
+		//initialize_particles();
+
+		// Initialize Emitters
+		//initialize_emitters();
+
+		// Initialize World Matrices
+		initialize_world_matrices();
+
+		// Initialize showing character camera/frustum
+		initialize_character_camera();
+	}
+
+	void dev_app_t::update()
+	{
+		delta_time = calc_delta_time();
+
+		// Update Grid
+		if (initializers[INIT_GRID])
 		{
-			for (int j = 0; j < 3; j++)
+			debug_grid_colors.update();
+			end::debug_renderer::add_grid(20, 20,
+				debug_grid_colors.horizontal_start, debug_grid_colors.horizontal_end,
+				debug_grid_colors.vertical_start, debug_grid_colors.vertical_end);
+		}
+
+		// Update Matrix-related functions
+		if (initializers[INIT_MATRICES])
+		{
+			update_user_character_movement();
+
+			draw_characters();
+		}
+
+		// Update Camera View
+		if (initializers[INIT_CAMERA])
+		{
+			update_camera_view();
+		}
+
+		// Update Emitters
+		if (initializers[INIT_EMITTERS])
+		{
+			update_sorted_pool_emitters();
+			update_free_pool_emitters();
+
+			// Draw particles
+			for (int i = 0; i < sorted_pool.size(); i++)
+				end::debug_renderer::add_line(sorted_pool[i].pos,
+					sorted_pool[i].get_endpoint(),
+					sorted_pool[i].color);
+
+			for (int i = 0; i < free_pool_emitters.size(); i++)
 			{
-				float newVal = colors[i][j] + (increments[i][j] * delta_time);
-				if (newVal > 1.0f)
+				emitter& em = free_pool_emitters[i];
+				for (auto itter = em.indices.begin(); itter != em.indices.end(); itter++)
 				{
-					newVal = 1.0f;
-					increments[i][j] *= -1;
+					end::debug_renderer::add_line(free_pool[*itter].pos,
+						free_pool[*itter].get_endpoint(),
+						free_pool[*itter].color);
 				}
-				else if (newVal < 0.0f)
-				{
-					newVal = 0.0f;
-					increments[i][j] *= -1;
-				}
-					
-				colors[i][j] = newVal;
-			}		
+			}
+		}
+
+		// Update Character Camera/Frustum
+		if (initializers[INIT_CHAR_CAMERA])
+		{
+			update_character_camera();
+			draw_character_camera();
 		}
 	}
 }
