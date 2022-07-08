@@ -54,13 +54,15 @@ namespace end
 	struct camera_properties
 	{
 		float CAMERA_ASPECT_RATIO = 9.0f / 16.0f;
-		float cameraWidth = 2;
-		float cameraLength = 10;
+		float cameraWidth = 5.25f;
+		float cameraLength = 5;
 		float cameraHeight = cameraWidth * CAMERA_ASPECT_RATIO;
-		float cameraNearWidth = cameraWidth / 10;
-		float cameraNearHeight = cameraHeight / 10;
-		float nearViewCutoff = 2;
+		float cameraNearWidth = cameraWidth / 3;
+		float cameraNearHeight = cameraHeight / 3;
+		float nearViewCutoff = 1.25f;
 	};
+
+	frustum_points calculate_frustum_points(camera_properties& cam_props, const view_t& view);
 
 	// Calculates the plane of a triangle from three points.
 	plane_t calculate_plane(float3 a, float3 b, float3 c);

@@ -204,23 +204,22 @@ namespace end
 		if (!initializers[INIT_MATRICES])
 			return;
 
-		float3 charcter_position = float3(
-			character_matrix[3][0],
-			character_matrix[3][1],
-			character_matrix[3][2]
-		);
-
-		matrixMath::Matrix4x4 char_view_mat = character_matrix;
-
-		float3 forward_vector = charcter_position.normalize(charcter_position) 
-			* character_cam_props.nearViewCutoff;
-		char_view_mat[3][0] += forward_vector.x;
-		char_view_mat[3][1] += forward_vector.y;
-		char_view_mat[3][2] += forward_vector.z;
-
-		character_view.view_mat = char_view_mat.ToFloat4x4_a();
+		character_view.view_mat = character_matrix.ToFloat4x4_a();
 
 		initializers[INIT_CHAR_CAMERA] = true;
+	}
+
+	void dev_app_t::initialize_aabbs()
+	{
+		if (!initializers[INIT_MATRICES] || !initializers[INIT_CHAR_CAMERA])
+			return;
+
+		aabbs.push_back({ float3(0, 1, -3), float3(0.25f, 1, 0.35f) });
+		aabbs.push_back({ float3(-5, 2, -6), float3(1.1f, 2, 0.7f) });
+		aabbs.push_back({ float3(-7, 1.1f, 7), float3(1.2f, 1.1f, 2) });
+		aabbs.push_back({ float3(4, 0.5f, -2), float3(1.2f, 0.5f, 1.3f) });
+
+		initializers[INIT_AABBs] = true;
 	}
 #pragma endregion
 
@@ -277,16 +276,6 @@ namespace end
 			character_matrix[3][2]
 		);
 
-		// Player Character Camera
-		if (initializers[INIT_CHAR_CAMERA])
-		{
-			matrixMath::Matrix4x4 char_view_mat = {};
-			char_view_mat = char_view_mat.From(character_view.view_mat);
-			char_view_mat.RotateY(rotation);
-			char_view_mat.Translate(0, 0, translation_z);
-			character_view.view_mat = char_view_mat.ToFloat4x4_a();
-		}
-
 		float3 world_up(0, 1, 0);
 
 		// Watcher 1 (Look At)
@@ -310,8 +299,12 @@ namespace end
 
 		float3 yComponent = float3(watcher2_matrix[1][0], watcher2_matrix[1][1], watcher2_matrix[1][2]);
 		turn_amount = turn_to(watcher2_position, character_position, yComponent);
+		
+		float3 temp = float3(watcher2_matrix[0][1], watcher2_matrix[0][2], watcher2_matrix[1][3]);
 		watcher2_matrix.RotateX(turn_amount * delta_time * rotation_speed);
-
+		watcher2_matrix[1][0] = temp[0];
+		watcher2_matrix[1][1] = temp[1];
+		watcher2_matrix[1][2] = temp[2];
 		watcher2_matrix[3][0] = watcher2_position[0];
 		watcher2_matrix[3][1] = watcher2_position[1];
 		watcher2_matrix[3][2] = watcher2_position[2];
@@ -320,7 +313,7 @@ namespace end
 		{
 			//std::cout << "Right Plane: " << rightPlanef3[0] << ", " << rightPlanef3[1] << ", " << rightPlanef3[2] << "\n";
 			//std::cout << "Turn Amount: " << turn_amount << "\n";
-			debug_report_time = 0;
+			//debug_report_time = 0;
 		}
 
 	}
@@ -428,9 +421,19 @@ namespace end
 
 	void dev_app_t::update_character_camera()
 	{
+		character_view.view_mat = character_matrix.ToFloat4x4_a();
+
 		calculate_frustum(character_cam_props, character_frustum, character_view);
 
 		// TODO check bounding boxes
+	}
+
+	void dev_app_t::update_aabbs()
+	{
+		for (auto aabb = aabbs.begin(); aabb != aabbs.end(); aabb++)
+		{
+			draw_aabb(*aabb, aabb_to_frustum(*aabb, character_frustum));
+		}
 	}
 
 	void grid_colors::update()
@@ -516,58 +519,121 @@ namespace end
 		draw_character(watcher2_position, watcher2_matrix);
 	}
 
+	void dev_app_t::draw_normal(float3 start, float3 end, float3 norm, float3 offset, float normDir)
+	{
+		float3 dir = end - start;
+		float dirLen = sqrtf(dir.x * dir.x + dir.y * dir.y + dir.z * dir.z) * .5;
+		float3 dirNorm = dir.normalize(dir);
+
+		float3 startNorm = end - start;
+		startNorm = startNorm.normalize(startNorm);
+		float3 e = start + offset + (dirNorm * dirLen);
+
+		end::debug_renderer::add_line(
+			e,
+			e + norm * normDir * .55f,
+			float4(.1, .1, 1, 1), float4(1, 1, 1, 1));
+	}
+
 	void dev_app_t::draw_character_camera()
 	{
-		// Calculate points
-		float3 camera_pos = float3(
-			character_view.view_mat[3][0],
-			character_view.view_mat[3][1],
-			character_view.view_mat[3][2]);
-		frustum_points points = {
-			/*NBL*/
-			float3(camera_pos.x - (character_cam_props.cameraWidth / 2),
-				camera_pos.y - (character_cam_props.cameraHeight) / 2,
-				camera_pos.z),
-			/*NBR*/
-			float3(camera_pos.x + (character_cam_props.cameraWidth / 2),
-				camera_pos.y - (character_cam_props.cameraHeight) / 2,
-				camera_pos.z),
-			/*NTL*/
-			float3(camera_pos.x - (character_cam_props.cameraWidth / 2),
-				camera_pos.y + (character_cam_props.cameraHeight) / 2,
-				camera_pos.z),
-			/*NTR*/
-			float3(camera_pos.x + (character_cam_props.cameraWidth / 2),
-				camera_pos.y + (character_cam_props.cameraHeight) / 2,
-				camera_pos.z),
-			/*FBL*/
-			float3(camera_pos.x - (character_cam_props.cameraWidth / 2),
-				camera_pos.y - (character_cam_props.cameraHeight) / 2,
-				camera_pos.z + character_cam_props.cameraLength),
-			/*FBR*/
-			float3(camera_pos.x + (character_cam_props.cameraWidth / 2),
-				camera_pos.y - (character_cam_props.cameraHeight) / 2,
-				camera_pos.z + character_cam_props.cameraLength),
-			/*FTL*/
-			float3(camera_pos.x - (character_cam_props.cameraWidth / 2),
-				camera_pos.y + (character_cam_props.cameraHeight) / 2,
-				camera_pos.z + character_cam_props.cameraLength),
-			/*FTR*/
-			float3(camera_pos.x + (character_cam_props.cameraWidth / 2),
-				camera_pos.y + (character_cam_props.cameraHeight) / 2,
-				camera_pos.z + character_cam_props.cameraLength)
-		};
 
-		// Draw Near Frame
-		end::debug_renderer::add_line(points.NBL, points.NTL, camera_frustum_color);
-		end::debug_renderer::add_line(points.NTL, points.NTR, camera_frustum_color);
-		end::debug_renderer::add_line(points.NTR, points.NBR, camera_frustum_color);
-		end::debug_renderer::add_line(points.NBR, points.NBL, camera_frustum_color);
+		frustum_points p = calculate_frustum_points(character_cam_props, character_view);
 
-		// Draw Far Frame
+		// Draw Frustum Bounds
 
-		// Draw Edges
+		end::debug_renderer::add_line(p.NBL, p.NBR, camera_frustum_color);
+		end::debug_renderer::add_line(p.NBL, p.NTL, camera_frustum_color);
+		end::debug_renderer::add_line(p.NTL, p.NTR, camera_frustum_color);
+		end::debug_renderer::add_line(p.NTR, p.NBR, camera_frustum_color);
 
+		end::debug_renderer::add_line(p.FBL, p.FBR, camera_frustum_color);
+		end::debug_renderer::add_line(p.FBL, p.FTL, camera_frustum_color);
+		end::debug_renderer::add_line(p.FTL, p.FTR, camera_frustum_color);
+		end::debug_renderer::add_line(p.FTR, p.FBR, camera_frustum_color);
+
+		end::debug_renderer::add_line(p.FBL, p.NBL, camera_frustum_color);
+		end::debug_renderer::add_line(p.FBR, p.NBR, camera_frustum_color);
+		end::debug_renderer::add_line(p.FTR, p.NTR, camera_frustum_color);
+		end::debug_renderer::add_line(p.FTL, p.NTL, camera_frustum_color);
+
+		// Draw Frustum Normals
+		float3 offset = float3(0, (p.NTL[1] - p.NBL[1]) / -2, 0);
+		//Left
+		draw_normal(p.NTL, p.FTL, character_frustum[0].normal, offset, -1);
+		//Right
+		draw_normal(p.NTR, p.FTR, character_frustum[1].normal, offset, 1);
+		offset = float3(0, (p.FBL[1] - p.FTR[1]) / 2, 0);
+		// Back
+		draw_normal(p.FTL, p.FTR, character_frustum[2].normal, offset, -1);
+		offset = float3(0, (p.NTL[1] - p.NBL[1]) / -2, 0);
+		// Front
+		draw_normal(p.NTL, p.NTR, character_frustum[3].normal, offset, 1);
+		offset = float3((p.NBL[0] - p.NTR[0]) / 2, 0, 0);
+		// Top
+		draw_normal(p.NTL, p.FTR, character_frustum[4].normal, offset, -1);
+		// Bottom
+		draw_normal(p.NBL, p.FBR, character_frustum[5].normal, offset, 1);
+
+	}
+
+	void dev_app_t::draw_aabb(const aabb_t& aabb, bool in_frustum)
+	{
+		float3 nbl = float3(
+			aabb.center.x - aabb.extents.x,
+			aabb.center.y - aabb.extents.y,
+			aabb.center.z - aabb.extents.z);
+		float3 nbr = float3(
+			aabb.center.x + aabb.extents.x,
+			aabb.center.y - aabb.extents.y,
+			aabb.center.z - aabb.extents.z);
+		float3 ntl = float3(
+			aabb.center.x - aabb.extents.x,
+			aabb.center.y + aabb.extents.y,
+			aabb.center.z - aabb.extents.z
+		);
+		float3 ntr = float3(
+			aabb.center.x + aabb.extents.x,
+			aabb.center.y + aabb.extents.y,
+			aabb.center.z - aabb.extents.z
+		);
+		float3 fbl = float3(
+			aabb.center.x - aabb.extents.x,
+			aabb.center.y - aabb.extents.y,
+			aabb.center.z + aabb.extents.z);
+		float3 fbr = float3(
+			aabb.center.x + aabb.extents.x,
+			aabb.center.y - aabb.extents.y,
+			aabb.center.z + aabb.extents.z);
+		float3 ftl = float3(
+			aabb.center.x - aabb.extents.x,
+			aabb.center.y + aabb.extents.y,
+			aabb.center.z + aabb.extents.z
+		);
+		float3 ftr = float3(
+			aabb.center.x + aabb.extents.x,
+			aabb.center.y + aabb.extents.y,
+			aabb.center.z + aabb.extents.z
+		);
+
+		float4 color = !in_frustum
+			? float4(1,1,1,1)
+			: float4(.3,1,.3,1);
+
+		end::debug_renderer::add_line(nbl, ntl, color);
+		end::debug_renderer::add_line(ntl, ntr, color);
+		end::debug_renderer::add_line(ntr, nbr, color);
+		end::debug_renderer::add_line(nbr, nbl, color);
+
+		end::debug_renderer::add_line(fbl, ftl, color);
+		end::debug_renderer::add_line(ftl, ftr, color);
+		end::debug_renderer::add_line(ftr, fbr, color);
+		end::debug_renderer::add_line(fbr, fbl, color);
+
+		end::debug_renderer::add_line(ntl, ftl, color);
+		end::debug_renderer::add_line(nbl, fbl, color);
+		end::debug_renderer::add_line(nbr, fbr, color);
+		end::debug_renderer::add_line(ntr, ftr, color);
 
 	}
 #pragma endregion
@@ -592,6 +658,9 @@ namespace end
 
 		// Initialize showing character camera/frustum
 		initialize_character_camera();
+		
+		// Initialize AABBs
+		initialize_aabbs();
 	}
 
 	void dev_app_t::update()
@@ -650,6 +719,12 @@ namespace end
 		{
 			update_character_camera();
 			draw_character_camera();
+		}
+
+		// Update AABBs
+		if (initializers[INIT_AABBs])
+		{
+			update_aabbs();
 		}
 	}
 }

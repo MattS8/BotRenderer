@@ -6,6 +6,7 @@
 #include "MatrixMath.h"
 #include "view.h"
 #include "frustum_culling.h"
+#include <vector>
 
 #define VK_LEFT				0x25
 #define VK_UP				0x26
@@ -26,6 +27,7 @@
 #define INIT_MATRICES		3
 #define INIT_CAMERA			4
 #define INIT_CHAR_CAMERA	5
+#define INIT_AABBs			6
 
 namespace end
 {
@@ -46,6 +48,8 @@ namespace end
 		view_t character_view;
 		frustum_t character_frustum;
 		camera_properties character_cam_props;
+
+		std::vector<aabb_t> aabbs;
 
 		float movement_speed = 4;
 		float rotation_speed = 100;
@@ -73,6 +77,8 @@ namespace end
 
 		void initialize_character_camera();
 
+		void initialize_aabbs();
+
 		// Update functions
 		void update_sorted_pool_emitters();
 
@@ -87,8 +93,15 @@ namespace end
 
 		void update_character_camera();
 
+		void update_aabbs();
+
 		// Draw functions
 		void draw_characters();
+
+		void draw_normal(float3 start, float3 end, float3 norm, 
+			float3 offset, float normDir);
+
+		void draw_aabb(const aabb_t& aabb, bool in_frustum);
 
 		void draw_character_camera();
 	};
