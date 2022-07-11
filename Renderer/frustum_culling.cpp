@@ -1,5 +1,6 @@
 #include "frustum_culling.h"
 #include "MatrixMath.h"
+#include <cmath>        // std::abs
 
 using namespace end;
 
@@ -74,14 +75,17 @@ void end::calculate_frustum(camera_properties& cam_props, frustum_t& frustum, co
 	frustum[0] = calculate_plane(points.NBL, points.FBL, points.FTL);
 	// Right Plane
 	frustum[1] = calculate_plane(points.NBR, points.FBR, points.FTR);
+	frustum[1].normal *= -1;
 	// Far Plane
 	frustum[2] = calculate_plane(points.FBL, points.FBR, points.FTR);
 	// Near Plane
 	frustum[3] = calculate_plane(points.NBL, points.NBR, points.NTR);
+	frustum[3].normal *= -1;
 	// Top Plane
 	frustum[4] = calculate_plane(points.NTL, points.FTL, points.FTR);
 	// Bottom Plane
 	frustum[5] = calculate_plane(points.NBL, points.FBL, points.FBR);
+	frustum[5].normal *= -1;
 }
 
 int end::classify_sphere_to_plane(const sphere_t& sphere, const plane_t& plane)
@@ -99,18 +103,26 @@ int end::classify_sphere_to_plane(const sphere_t& sphere, const plane_t& plane)
 
 int end::classify_aabb_to_plane(const aabb_t& aabb, const plane_t& plane)
 {
-	return 0;
+	end::sphere_t sphere;
+	float3 normalAbs;
+	normalAbs.x = std::abs(plane.normal.x);
+	normalAbs.y = std::abs(plane.normal.y);
+	normalAbs.z = std::abs(plane.normal.z);
+	sphere.radius = normalAbs.dot(aabb.extents, normalAbs);
+	sphere.center = aabb.center;
+
+	return classify_sphere_to_plane(sphere, plane);
 }
 
 bool end::aabb_to_frustum(const aabb_t& aabb, const frustum_t& frustum)
 {
 	for (int i = 0; i < 6; i++)
 	{
-		if (classify_aabb_to_plane(aabb, frustum[i]) >= 0)
-			return true;
+		if (classify_aabb_to_plane(aabb, frustum[i]) < 0)
+			return false;
 	}
 
-	return false;
+	return true;
 }
 
 

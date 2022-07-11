@@ -228,10 +228,17 @@ namespace end
 	{
 		if (mouseStates[D_VK_RMB] || mouseStates[D_VK_LMB])
 		{
+			float3 pos;
+			pos.x = camera_view_matrix[3][0];
+			pos.y = camera_view_matrix[3][1];
+			pos.z = camera_view_matrix[3][2];
 			float rotation_amount = deltaX * delta_time * camera_rotation_speed;
 			camera_view_matrix.InverseOrthoAffine();
 			camera_view_matrix.RotateY(-rotation_amount);
 			camera_view_matrix.InverseOrthoAffine();
+			camera_view_matrix[3][0]= pos.x;
+			camera_view_matrix[3][1]= pos.y;
+			camera_view_matrix[3][2]= pos.z;
 		}
 	}
 
@@ -239,10 +246,17 @@ namespace end
 	{
 		if (mouseStates[D_VK_RMB] || mouseStates[D_VK_LMB])
 		{
+			float3 pos;
+			pos.x = camera_view_matrix[3][0];
+			pos.y = camera_view_matrix[3][1];
+			pos.z = camera_view_matrix[3][2];
 			float rotation_amount = deltaY * delta_time * camera_rotation_speed;
 			camera_view_matrix.InverseOrthoAffine();
 			camera_view_matrix.RotateX(-rotation_amount);
 			camera_view_matrix.InverseOrthoAffine();
+			camera_view_matrix[3][0] = pos.x;
+			camera_view_matrix[3][1] = pos.y;
+			camera_view_matrix[3][2] = pos.z;
 		}
 	}
 
@@ -560,18 +574,18 @@ namespace end
 		// Draw Frustum Normals
 		float3 offset = float3(0, (p.NTL[1] - p.NBL[1]) / -2, 0);
 		//Left
-		draw_normal(p.NTL, p.FTL, character_frustum[0].normal, offset, -1);
+		draw_normal(p.NTL, p.FTL, character_frustum[0].normal, offset, 1);
 		//Right
 		draw_normal(p.NTR, p.FTR, character_frustum[1].normal, offset, 1);
 		offset = float3(0, (p.FBL[1] - p.FTR[1]) / 2, 0);
 		// Back
-		draw_normal(p.FTL, p.FTR, character_frustum[2].normal, offset, -1);
+		draw_normal(p.FTL, p.FTR, character_frustum[2].normal, offset, 1);
 		offset = float3(0, (p.NTL[1] - p.NBL[1]) / -2, 0);
 		// Front
 		draw_normal(p.NTL, p.NTR, character_frustum[3].normal, offset, 1);
 		offset = float3((p.NBL[0] - p.NTR[0]) / 2, 0, 0);
 		// Top
-		draw_normal(p.NTL, p.FTR, character_frustum[4].normal, offset, -1);
+		draw_normal(p.NTL, p.FTR, character_frustum[4].normal, offset, 1);
 		// Bottom
 		draw_normal(p.NBL, p.FBR, character_frustum[5].normal, offset, 1);
 
