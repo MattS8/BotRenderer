@@ -72,20 +72,17 @@ void end::calculate_frustum(camera_properties& cam_props, frustum_t& frustum, co
 	frustum_points points = calculate_frustum_points(cam_props, view);
 
 	// Left Plane
-	frustum[0] = calculate_plane(points.NBL, points.FBL, points.FTL);
+	frustum[0] = calculate_plane(points.NBL, points.FTL, points.FBL);
 	// Right Plane
-	frustum[1] = calculate_plane(points.NBR, points.FBR, points.FTR);
-	frustum[1].normal *= -1;
+	frustum[1] = calculate_plane(points.FTR, points.NBR, points.FBR);
 	// Far Plane
-	frustum[2] = calculate_plane(points.FBL, points.FBR, points.FTR);
+	frustum[2] = calculate_plane(points.FBR, points.FBL, points.FTR);
 	// Near Plane
 	frustum[3] = calculate_plane(points.NBL, points.NBR, points.NTR);
-	frustum[3].normal *= -1;
 	// Top Plane
-	frustum[4] = calculate_plane(points.NTL, points.FTL, points.FTR);
+	frustum[4] = calculate_plane(points.FTR, points.FTL, points.NTL);
 	// Bottom Plane
 	frustum[5] = calculate_plane(points.NBL, points.FBL, points.FBR);
-	frustum[5].normal *= -1;
 }
 
 int end::classify_sphere_to_plane(const sphere_t& sphere, const plane_t& plane)
