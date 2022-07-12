@@ -45,7 +45,9 @@ namespace end
 	}
 
 #pragma region Calculation Functions
-	matrixMath::Matrix4x4 look_at(float3 position, float3 target, float3 world_up)
+	matrixMath::Matrix4x4 look_at(float3 position, 
+		float3 target, 
+		float3 world_up)
 	{
 		matrixMath::Matrix4x4 look_at_matrix;
 		float3 z_axis = target - position;
@@ -216,7 +218,7 @@ namespace end
 
 		aabbs.push_back({ float3(0, 1, -3), float3(0.25f, 1, 0.35f) });
 		aabbs.push_back({ float3(-5, 2, -6), float3(1.1f, 2, 0.7f) });
-		aabbs.push_back({ float3(-7, 1.1f, 7), float3(1.2f, 1.1f, 2) });
+		aabbs.push_back({ float3(-2, 1.1f, 7), float3(1.2f, 1.1f, 2) });
 		aabbs.push_back({ float3(4, 0.5f, -2), float3(1.2f, 0.5f, 1.3f) });
 
 		initializers[INIT_AABBs] = true;
