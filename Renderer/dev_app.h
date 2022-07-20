@@ -47,6 +47,7 @@ namespace end
 		camera_properties character_cam_props;
 
 		std::vector<aabb_t> aabbs;
+		aabb_t character_aabb;
 
 		float movement_speed = 4;
 		float rotation_speed = 100;
@@ -76,7 +77,11 @@ namespace end
 
 		void initialize_aabbs();
 
+		void initialize_terrain_aabbs();
+
 		// Update functions
+		void update_character_aabb();
+
 		void update_sorted_pool_emitters();
 
 		void update_free_pool_emitters();
@@ -99,6 +104,8 @@ namespace end
 			float3 offset, float normDir);
 
 		void draw_aabb(const aabb_t& aabb, bool in_frustum);
+
+		void draw_aabb(const aabb_t& aabb, float4 color);
 
 		void draw_character_camera();
 	};

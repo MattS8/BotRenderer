@@ -223,6 +223,13 @@ namespace end
 
 		initializers[Initializers::TEST_AABBS] = true;
 	}
+
+	void dev_app_t::initialize_terrain_aabbs()
+	{
+		initializers[Initializers::CHARACTER_AABB] = true;
+
+		character_matrix[3][1] = 0;
+	}
 #pragma endregion
 
 #pragma region Update Functions
@@ -440,8 +447,6 @@ namespace end
 		character_view.view_mat = character_matrix.ToFloat4x4_a();
 
 		calculate_frustum(character_cam_props, character_frustum, character_view);
-
-		// TODO check bounding boxes
 	}
 
 	void dev_app_t::update_aabbs()
@@ -450,6 +455,23 @@ namespace end
 		{
 			draw_aabb(*aabb, aabb_to_frustum(*aabb, character_frustum));
 		}
+	}
+
+	void dev_app_t::update_character_aabb()
+	{
+		static const float3 aabb_CharacterExtents = { 0.5f, 1.5f, 0.5f };
+		static const float4 character_aabb_color = { 0.2f, 0.2f, 1.0f, 1.0f };
+
+		float3 character_position = float3(
+			character_matrix[3][0],
+			character_matrix[3][1],
+			character_matrix[3][2]
+		);
+
+		character_aabb.center = character_position;
+		character_aabb.extents = aabb_CharacterExtents;
+
+		draw_aabb(character_aabb, character_aabb_color);
 	}
 
 	void grid_colors::update()
@@ -593,7 +615,7 @@ namespace end
 
 	}
 
-	void dev_app_t::draw_aabb(const aabb_t& aabb, bool in_frustum)
+	void dev_app_t::draw_aabb(const aabb_t& aabb, float4 color)
 	{
 		float3 nbl = float3(
 			aabb.center.x - aabb.extents.x,
@@ -632,10 +654,6 @@ namespace end
 			aabb.center.z + aabb.extents.z
 		);
 
-		float4 color = !in_frustum
-			? float4(1,1,1,1)
-			: float4(.3,1,.3,1);
-
 		end::debug_renderer::add_line(nbl, ntl, color);
 		end::debug_renderer::add_line(ntl, ntr, color);
 		end::debug_renderer::add_line(ntr, nbr, color);
@@ -650,7 +668,13 @@ namespace end
 		end::debug_renderer::add_line(nbl, fbl, color);
 		end::debug_renderer::add_line(nbr, fbr, color);
 		end::debug_renderer::add_line(ntr, ftr, color);
+	}
 
+	void dev_app_t::draw_aabb(const aabb_t& aabb, bool in_frustum)
+	{
+		draw_aabb(aabb, !in_frustum
+			? float4(1, 1, 1, 1)
+			: float4(.3, 1, .3, 1));
 	}
 #pragma endregion
 
@@ -661,7 +685,7 @@ namespace end
 		std::cout << "Log whatever you need here.\n";
 
 		// Initialize Debug Grid Colors
-		initialize_grid();
+		//initialize_grid();
 
 		// Initialize particle colors
 		//initialize_particles();
@@ -673,10 +697,13 @@ namespace end
 		initialize_world_matrices();
 
 		// Initialize showing character camera/frustum
-		initialize_character_camera();
+		//initialize_character_camera();
 		
 		// Initialize AABBs
-		initialize_aabbs();
+		//initialize_aabbs();
+
+		// Initialize Terrain AABBs 
+		initialize_terrain_aabbs();
 	}
 
 	void dev_app_t::update()
@@ -741,6 +768,18 @@ namespace end
 		if (initializers[Initializers::TEST_AABBS])
 		{
 			update_aabbs();
+		}
+
+		// Update Character AABBs 
+		if (initializers[Initializers::CHARACTER_AABB])
+		{
+			update_character_aabb();
+		}
+
+		// Update Terrain AABBs 
+		if (initializers[Initializers::TERRAIN_AABBS])
+		{
+
 		}
 	}
 }
