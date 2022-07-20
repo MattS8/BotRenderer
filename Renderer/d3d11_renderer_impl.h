@@ -1,6 +1,7 @@
 #pragma once
 
 #define WIN32_LEAN_AND_MEAN
+#define NOMINMAX
 #include <Windows.h>
 #include <dxgi1_2.h>
 #include <d3d11_2.h>
@@ -15,6 +16,8 @@
 #include "blob.h"
 #include "../Renderer/shaders/mvp.hlsli"
 #include "../Renderer/debug_renderer.h"
+
+#include <fstream> 
 
 // NOTE: This header file must *ONLY* be included by renderer.cpp
 
@@ -71,7 +74,8 @@ namespace end
 		ID3D11BlendState*			blend_state[STATE_BLEND::COUNT]{};
 		*/
 
-
+		UINT terrain_vert_count;
+		std::vector<pos_norm_uv_vertex> terrain_verts;
 
 		// Constructor for renderer implementation
 		// 
@@ -92,6 +96,8 @@ namespace end
 			create_constant_buffers();
 
 			create_debug_buffer();
+
+			create_terrain_buffer();
 
 			float aspect = view_port[VIEWPORT::DEFAULT].Width / view_port[VIEWPORT::DEFAULT].Height;
 
@@ -148,6 +154,23 @@ namespace end
 
 				context->Draw(end::debug_renderer::get_line_vert_count(), 0);
 			}
+
+			if (terrain_vert_count > 0)
+			{
+				context->VSSetShader(vertex_shader[VERTEX_SHADER::POS_NORM_UV], nullptr, 0);
+				context->PSSetShader(pixel_shader[PIXEL_SHADER::BUFFERLESS_CUBE], nullptr, 0);
+				context->VSSetConstantBuffers(0, 1, &constant_buffer[CONSTANT_BUFFER::MVP]);
+
+				UINT stride = sizeof(pos_norm_uv_vertex);
+				UINT offset = 0;
+
+				context->IASetVertexBuffers(0, 1, &vertex_buffer[VERTEX_BUFFER::TERRAIN], &stride, &offset);
+				context->IASetInputLayout(input_layout[INPUT_LAYOUT::POS_NORM_UV]);
+				context->IASetPrimitiveTopology(D3D10_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+
+				context->Draw(terrain_vert_count, 0);
+			}
+
 			swapchain->Present(0, 0);
 
 			end::debug_renderer::clear_lines();
@@ -373,6 +396,24 @@ namespace end
 
 			assert(!FAILED(hr));
 
+			// Pos_norm_uv 
+			{
+				binary_blob_t vs_blob = load_binary_blob("vs_pos_norm_uv.cso");
+
+				hr = device->CreateVertexShader(vs_blob.data(), vs_blob.size(), NULL, &vertex_shader[VERTEX_SHADER::POS_NORM_UV]);
+
+				assert(!FAILED(hr));
+
+				D3D11_INPUT_ELEMENT_DESC desc[] = {
+					{"POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0},
+					{"NORMAL",   0,	DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0},
+					{"TEXCOORD", 0,	DXGI_FORMAT_R32G32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0},
+				};
+
+				hr = device->CreateInputLayout(desc, 3, vs_blob.data(), vs_blob.size(), &input_layout[INPUT_LAYOUT::POS_NORM_UV]);
+
+				assert(!FAILED(hr));
+			}
 		}
 
 		void create_constant_buffers()
@@ -386,6 +427,85 @@ namespace end
 			mvp_bd.CPUAccessFlags = 0;
 
 			HRESULT hr = device->CreateBuffer(&mvp_bd, NULL, &constant_buffer[CONSTANT_BUFFER::MVP]);
+		}
+
+		void create_terrain_buffer()
+		{
+			{
+				std::fstream file{ "terrain.bin", std::ios_base::in | std::ios_base::binary };
+
+				assert(file.is_open());
+
+				if (!file.is_open())
+				{
+					assert(false);
+					return;
+				}
+
+				file.read((char*)&terrain_vert_count, sizeof(uint32_t));
+
+				std::vector<float3> pos;
+				std::vector<float3> norms;
+				std::vector<float2> uvs;
+				pos.resize(terrain_vert_count);
+				norms.resize(terrain_vert_count);
+				uvs.resize(terrain_vert_count);
+
+				//debug_renderer::terrain_quad_indices.reserve(terrain_vert_count / 6);
+
+				file.read((char*)pos.data(), sizeof(float3) * terrain_vert_count);
+				file.read((char*)norms.data(), sizeof(float3) * terrain_vert_count);
+				file.read((char*)uvs.data(), sizeof(float3) * terrain_vert_count);
+
+				file.close();
+
+				terrain_verts.resize(terrain_vert_count);
+				float3 maxPos = { 0,0,0 };
+				for (int i = 0; i < terrain_vert_count; i++)
+				{
+					terrain_verts[i].pos = pos[i];
+					terrain_verts[i].norm = norms[i];
+					terrain_verts[i].uv = uvs[i];
+
+					// Find max values (used for position adjustments) 
+					if (terrain_verts[i].pos.x > maxPos.x)
+						maxPos.x = terrain_verts[i].pos.x;
+					if (terrain_verts[i].pos.y > maxPos.y)
+						maxPos.y = terrain_verts[i].pos.y;
+					if (terrain_verts[i].pos.z > maxPos.z)
+						maxPos.z = terrain_verts[i].pos.z;
+				}
+
+				// Adjust position to fit map 
+				for (int i = 0; i < terrain_vert_count; i++)
+				{
+					terrain_verts[i].pos.x -= maxPos.x / 2;
+					terrain_verts[i].pos.y -= maxPos.y / 1;
+					terrain_verts[i].pos.z -= maxPos.z / 2;
+
+					terrain_verts[i].pos.x /= 2.9;
+					terrain_verts[i].pos.y /= 2.9;
+					terrain_verts[i].pos.z /= 2.9;
+				}
+			}
+
+
+			D3D11_BUFFER_DESC bd;
+			ZeroMemory(&bd, sizeof(bd));
+
+			bd.Usage = D3D11_USAGE_DEFAULT;
+			bd.ByteWidth = (UINT)(sizeof(pos_norm_uv_vertex) * terrain_vert_count);
+			bd.BindFlags = D3D11_BIND_VERTEX_BUFFER;
+			bd.CPUAccessFlags = 0;
+
+			D3D11_SUBRESOURCE_DATA srd;
+			srd.SysMemPitch = 0;
+			srd.SysMemSlicePitch = 0;
+			srd.pSysMem = terrain_verts.data();
+
+			HRESULT hr = device->CreateBuffer(&bd, &srd, &vertex_buffer[VERTEX_BUFFER::TERRAIN]);
+
+			assert(!FAILED(hr));
 		}
 
 		void create_debug_buffer() {

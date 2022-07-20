@@ -5,6 +5,9 @@
 #include "pools.h"
 #include "emitter.h"
 #include <vector>
+#include "bvh.h"
+#include <algorithm> 
+#include <cmath> 
 
 
 namespace
@@ -229,6 +232,73 @@ namespace end
 		initializers[Initializers::CHARACTER_AABB] = true;
 
 		character_matrix[3][1] = 0;
+
+		unsigned int terrain_vert_count = terrain_verts->size();
+		terrain_quads.resize(terrain_vert_count / 6);
+
+		for (int i = 5; i < terrain_vert_count; i+=6)
+		{
+			quad_t new_quad = {
+				{i - 5, i - 4, i - 3},
+				{i - 2, i - 1, i}
+			};
+			terrain_quads.push_back(new_quad);
+		}
+
+		// Shuffle quads 
+		std::random_shuffle(terrain_quads.begin(),
+			terrain_quads.end());
+
+		//Insert each quad's aabb into tree 
+		for (int i = 0; i < terrain_quads.size(); i++)
+		{
+			quad_t quad = terrain_quads[i];
+
+			float3 first_max_pos;
+			float3 second_max_pos;
+			float3 max_pos;
+
+			float3 a = (*terrain_verts)[quad.first.a].pos;
+			float3 b = (*terrain_verts)[quad.first.b].pos;
+			float3 c = (*terrain_verts)[quad.first.c].pos;
+			float3 center_1 = {
+				(a.x + b.x + c.x) / 3,
+				(a.y + b.y + c.y) / 3,
+				(a.z + b.z + c.z) / 3
+			};
+
+			first_max_pos.x = std::max(a.x, std::max(b.x, c.x));
+			first_max_pos.y = std::max(a.y, std::max(b.y, c.y));
+			first_max_pos.z = std::max(a.z, std::max(b.z, c.z));
+
+			a = (*terrain_verts)[quad.second.a].pos;
+			b = (*terrain_verts)[quad.second.b].pos;
+			c = (*terrain_verts)[quad.second.c].pos;
+			float3 center_2 = {
+				(a.x + b.x + c.x) / 3,
+				(a.y + b.y + c.y) / 3,
+				(a.z + b.z + c.z) / 3
+			};
+
+			second_max_pos.x = std::max(a.x, std::max(b.x, c.x));
+			second_max_pos.y = std::max(a.y, std::max(b.y, c.y));
+			second_max_pos.z = std::max(a.z, std::max(b.z, c.z));
+
+			max_pos.x = std::max(first_max_pos.x, second_max_pos.x);
+			max_pos.y = std::max(first_max_pos.y, second_max_pos.y);
+			max_pos.z = std::max(first_max_pos.z, second_max_pos.z);
+
+			float3 new_center = (center_1 + center_2) / 2;
+			float3 new_extents = max_pos - new_center;
+
+			aabb_t new_aabb = { new_center, new_extents };
+
+			// TODO: Insert quad into tree 
+			bvh_tree.insert(new_aabb, i);
+		}
+
+		std::cout << "Finished initializing terrain!\n";
+
 	}
 #pragma endregion
 
@@ -701,9 +771,6 @@ namespace end
 		
 		// Initialize AABBs
 		//initialize_aabbs();
-
-		// Initialize Terrain AABBs 
-		initialize_terrain_aabbs();
 	}
 
 	void dev_app_t::update()

@@ -215,7 +215,7 @@ void create_console()
 	FILE* new_std_in_out;
 	freopen_s(&new_std_in_out, "CONOUT$", "w", stdout);
 	freopen_s(&new_std_in_out, "CONIN$", "r", stdin);
-	std::cout << "Debug Console Opened.\n"; // Don’t forget to include <iostream>
+	std::cout << "Debug Console Opened.\n"; // Donï¿½t forget to include <iostream>
 #endif
 }
 
@@ -239,7 +239,9 @@ MSG begin_main_loop()
 	MSG msg;
 
 	end::renderer_t renderer(main_hwnd);
-	
+	dev_app.terrain_verts = renderer.terrain_verts;
+	dev_app.initialize_terrain_aabbs();
+
 	RAWINPUTDEVICE raw_input_device;
 	raw_input_device.usUsagePage = 0x01; // Mouse page
 	raw_input_device.usUsage = 0x02; // Mouse usage

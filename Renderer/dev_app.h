@@ -7,6 +7,7 @@
 #include "view.h"
 #include "frustum_culling.h"
 #include <vector>
+#include "bvh.h"
 
 #define VK_LEFT				0x25
 #define VK_UP				0x26
@@ -55,6 +56,10 @@ namespace end
 		float camera_movement_speed = 4;
 		std::bitset<256> keyStates;
 		std::bitset<2> mouseStates;
+
+		std::vector<pos_norm_uv_vertex>* terrain_verts;
+		std::vector<quad_t> terrain_quads;
+		bvh_t bvh_tree;
 
 		void update();
 

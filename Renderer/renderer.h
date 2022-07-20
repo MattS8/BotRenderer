@@ -1,6 +1,9 @@
 #pragma once
 #include <memory>
 #include "view.h"
+#include <vector>
+#include "math_types.h"
+
 
 #define FSGD_END_USE_D3D
 
@@ -24,6 +27,8 @@ namespace end
 		void draw();
 
 		view_t default_view;
+
+		std::vector<pos_norm_uv_vertex>* terrain_verts;
 
 	private:
 
@@ -81,7 +86,7 @@ namespace end
 	};
 
 	struct VERTEX_BUFFER {
-		enum { COLORED_VERTEX = 0, POS_NORM_UV, COUNT };
+		enum { COLORED_VERTEX = 0, TERRAIN, COUNT };
 	};
 
 	/* Add more as needed...

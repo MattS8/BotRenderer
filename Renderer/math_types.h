@@ -179,6 +179,21 @@ namespace end
 		float3 extents;
 	}; //Alternative: aabb_t { float3 min; float3 max; };
 
+	struct tri_t
+	{
+		unsigned int a, b, c;
+
+		//tri_index(unsigned int _a, unsigned int _b, unsigned int _c): a(_a), b(_b), c(_c) {} 
+	};
+
+	struct quad_t
+	{
+		tri_t first;
+		tri_t second;
+
+		//quad_index(tri_index a, tri_index b) : first(a), second(b) {} 
+	};
+
 	struct float4
 	{
 		union

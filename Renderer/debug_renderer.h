@@ -1,6 +1,7 @@
 #pragma once
 
 #include "math_types.h"
+#include <vector>
 
 // Interface to the debug renderer
 namespace end

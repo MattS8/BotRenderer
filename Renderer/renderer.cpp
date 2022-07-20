@@ -9,6 +9,7 @@ namespace end
 	renderer_t::renderer_t(native_handle_type window_handle)
 	{
 		p_impl = new impl_t(window_handle, default_view);
+		terrain_verts = &(p_impl->terrain_verts);
 	}
 
 	/*
