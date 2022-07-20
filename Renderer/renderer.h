@@ -49,7 +49,7 @@ namespace end
 	};
 
 	struct VERTEX_SHADER {
-		enum { BUFFERLESS_CUBE = 0, COLORED_VERTEX, COUNT };
+		enum { BUFFERLESS_CUBE = 0, COLORED_VERTEX, POS_NORM_UV, COUNT };
 	};
 
 	struct PIXEL_SHADER {
@@ -65,7 +65,7 @@ namespace end
 	};
 
 	struct INPUT_LAYOUT {
-		enum { COLORED_VERTEX = 0, COUNT };
+		enum { COLORED_VERTEX = 0, POS_NORM_UV, COUNT };
 	};
 
 	struct STATE_RASTERIZER {
@@ -81,7 +81,7 @@ namespace end
 	};
 
 	struct VERTEX_BUFFER {
-		enum { COLORED_VERTEX = 0, COUNT };
+		enum { COLORED_VERTEX = 0, POS_NORM_UV, COUNT };
 	};
 
 	/* Add more as needed...

@@ -115,7 +115,7 @@ namespace end
 		debug_grid_colors.vertical_start = { 0.0f, 1.0f, 0.0f, 1.0f };
 		debug_grid_colors.vertical_end = { 0.0f, 1.0f, 1.0f, 1.0f };
 
-		initializers[INIT_GRID] = true;
+		initializers[Initializers::GRID] = true;
 	}
 
 	void dev_app_t::initialize_particles()
@@ -137,12 +137,12 @@ namespace end
 			particle_colorsRGB.push_back(float4(1 - varColor, varColor, 1 - varColor, 1.0f));
 		}
 
-		initializers[INIT_PARTICLES] = true;
+		initializers[Initializers::PARTICLES] = true;
 	}
 
 	void dev_app_t::initialize_emitters()
 	{
-		if (!initializers[INIT_PARTICLES])
+		if (!initializers[Initializers::PARTICLES])
 			initialize_particles();
 
 		emitter sorted_emitter =
@@ -178,7 +178,7 @@ namespace end
 		free_emitter.particle_colors = particle_colorsBG;
 		free_pool_emitters.push_back(free_emitter);
 
-		initializers[INIT_EMITTERS] = true;
+		initializers[Initializers::EMITTERS] = true;
 	}
 
 	void dev_app_t::initialize_world_matrices()
@@ -190,7 +190,7 @@ namespace end
 		watcher2_matrix = matrixMath::IdentityMatrix4x4;
 		watcher2_matrix.Translate(6, 3, 3);
 
-		initializers[INIT_MATRICES] = true;
+		initializers[Initializers::MATRICES] = true;
 	}
 
 	void dev_app_t::initialize_camera_view(view_t* view)
@@ -198,22 +198,22 @@ namespace end
 		this->view = view;
 		camera_view_matrix.From(view->view_mat);
 
-		initializers[INIT_CAMERA] = true;
+		initializers[Initializers::CAMERA] = true;
 	}
 
 	void dev_app_t::initialize_character_camera()
 	{
-		if (!initializers[INIT_MATRICES])
+		if (!initializers[Initializers::MATRICES])
 			return;
 
 		character_view.view_mat = character_matrix.ToFloat4x4_a();
 
-		initializers[INIT_CHAR_CAMERA] = true;
+		initializers[Initializers::CHAR_CAMERA] = true;
 	}
 
 	void dev_app_t::initialize_aabbs()
 	{
-		if (!initializers[INIT_MATRICES] || !initializers[INIT_CHAR_CAMERA])
+		if (!initializers[Initializers::MATRICES] || !initializers[Initializers::CHAR_CAMERA])
 			return;
 
 		aabbs.push_back({ float3(0, 1, -3), float3(0.25f, 1, 0.35f) });
@@ -221,7 +221,7 @@ namespace end
 		aabbs.push_back({ float3(-2, 1.1f, 7), float3(1.2f, 1.1f, 2) });
 		aabbs.push_back({ float3(4, 0.5f, -2), float3(1.2f, 0.5f, 1.3f) });
 
-		initializers[INIT_AABBs] = true;
+		initializers[Initializers::TEST_AABBS] = true;
 	}
 #pragma endregion
 
@@ -684,7 +684,7 @@ namespace end
 		delta_time = calc_delta_time();
 
 		// Update Grid
-		if (initializers[INIT_GRID])
+		if (initializers[Initializers::GRID])
 		{
 			debug_grid_colors.update();
 			end::debug_renderer::add_grid(20, 20,
@@ -693,7 +693,7 @@ namespace end
 		}
 
 		// Update Matrix-related functions
-		if (initializers[INIT_MATRICES])
+		if (initializers[Initializers::MATRICES])
 		{
 			update_user_character_movement();
 
@@ -701,13 +701,13 @@ namespace end
 		}
 
 		// Update Camera View
-		if (initializers[INIT_CAMERA])
+		if (initializers[Initializers::CAMERA])
 		{
 			update_camera_view();
 		}
 
 		// Update Emitters
-		if (initializers[INIT_EMITTERS])
+		if (initializers[Initializers::EMITTERS])
 		{
 			update_sorted_pool_emitters();
 			update_free_pool_emitters();
@@ -731,14 +731,14 @@ namespace end
 		}
 
 		// Update Character Camera/Frustum
-		if (initializers[INIT_CHAR_CAMERA])
+		if (initializers[Initializers::CHAR_CAMERA])
 		{
 			update_character_camera();
 			draw_character_camera();
 		}
 
 		// Update AABBs
-		if (initializers[INIT_AABBs])
+		if (initializers[Initializers::TEST_AABBS])
 		{
 			update_aabbs();
 		}

@@ -10,20 +10,6 @@ namespace end
 {
 	struct sphere_t { float3 center; float radius; }; //Alterative: using sphere_t = float4;
 
-	struct aabb_t 
-	{ 
-		union
-		{
-			float3 center;
-			float3 min;
-		};
-		union
-		{
-			float3 extents;
-			float3 max;
-		};
-	}; //Alternative: aabb_t { float3 min; float3 max; };
-
 	struct plane_t 
 	{ 
 		float3 normal;

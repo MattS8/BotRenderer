@@ -173,6 +173,12 @@ namespace end
 		}
 	};
 
+	struct aabb_t
+	{
+		float3 center;
+		float3 extents;
+	}; //Alternative: aabb_t { float3 min; float3 max; };
+
 	struct float4
 	{
 		union
@@ -259,6 +265,13 @@ namespace end
 
 namespace end
 {
+	struct pos_norm_uv_vertex
+	{
+		float3 pos = { 0.0f, 0.0f,0.0f };
+		float3 norm = { 0.0f, 0.0f,0.0f };
+		float2 uv = { 0.0f, 0.0f };
+	};
+
 	struct colored_vertex
 	{
 		float3 pos = { 0.0f, 0.0f, 0.0f };

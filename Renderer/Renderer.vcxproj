@@ -140,6 +140,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="blob.cpp" />
+    <ClCompile Include="bvh.cpp" />
     <ClCompile Include="debug_renderer.cpp" />
     <ClCompile Include="dev_app.cpp" />
     <ClCompile Include="frustum_culling.cpp" />
@@ -148,6 +149,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="blob.h" />
+    <ClInclude Include="bvh.h" />
     <ClInclude Include="d3d11_renderer_impl.h" />
     <ClInclude Include="debug_renderer.h" />
     <ClInclude Include="dev_app.h" />
@@ -179,6 +181,10 @@
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Vertex</ShaderType>
       <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">5.0</ShaderModel>
       <ObjectFileOutput Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(ProjectDir)%(Filename).cso</ObjectFileOutput>
+    </FxCompile>
+    <FxCompile Include="shaders\vs_pos_norm_uv.hlsl">
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Vertex</ShaderType>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Vertex</ShaderType>
     </FxCompile>
   </ItemGroup>
   <ItemGroup>

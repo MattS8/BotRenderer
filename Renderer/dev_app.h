@@ -21,21 +21,18 @@
 #define D_VK_RMB			0x1
 #define D_VK_LMB			0x0
 
-#define INIT_PARTICLES		0
-#define INIT_EMITTERS		1
-#define INIT_GRID			2
-#define INIT_MATRICES		3
-#define INIT_CAMERA			4
-#define INIT_CHAR_CAMERA	5
-#define INIT_AABBs			6
-
 namespace end
 {
+	enum Initializers {
+		PARTICLES = 0, EMITTERS, GRID, MATRICES, CAMERA,
+		CHAR_CAMERA, TEST_AABBS, TERRAIN_AABBS, CHARACTER_AABB, COUNT
+	};
+
 	// Simple app class for development and testing purposes
 	class dev_app_t
 	{
 	private:
-		std::bitset<8> initializers;
+		std::bitset<Initializers::COUNT> initializers;
 
 		matrixMath::Matrix4x4 character_matrix;
 		matrixMath::Matrix4x4 watcher1_matrix;
