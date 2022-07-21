@@ -83,5 +83,66 @@ namespace end
 		{
 			return MAX_LINE_VERTS;
 		}
+		void draw_aabb(const aabb_t& aabb, float4 color)
+		{
+			float3 nbl = float3(
+				aabb.center.x - aabb.extents.x,
+				aabb.center.y - aabb.extents.y,
+				aabb.center.z - aabb.extents.z);
+			float3 nbr = float3(
+				aabb.center.x + aabb.extents.x,
+				aabb.center.y - aabb.extents.y,
+				aabb.center.z - aabb.extents.z);
+			float3 ntl = float3(
+				aabb.center.x - aabb.extents.x,
+				aabb.center.y + aabb.extents.y,
+				aabb.center.z - aabb.extents.z
+			);
+			float3 ntr = float3(
+				aabb.center.x + aabb.extents.x,
+				aabb.center.y + aabb.extents.y,
+				aabb.center.z - aabb.extents.z
+			);
+			float3 fbl = float3(
+				aabb.center.x - aabb.extents.x,
+				aabb.center.y - aabb.extents.y,
+				aabb.center.z + aabb.extents.z);
+			float3 fbr = float3(
+				aabb.center.x + aabb.extents.x,
+				aabb.center.y - aabb.extents.y,
+				aabb.center.z + aabb.extents.z);
+			float3 ftl = float3(
+				aabb.center.x - aabb.extents.x,
+				aabb.center.y + aabb.extents.y,
+				aabb.center.z + aabb.extents.z
+			);
+			float3 ftr = float3(
+				aabb.center.x + aabb.extents.x,
+				aabb.center.y + aabb.extents.y,
+				aabb.center.z + aabb.extents.z
+			);
+
+			add_line(nbl, ntl, color);
+			add_line(ntl, ntr, color);
+			add_line(ntr, nbr, color);
+			add_line(nbr, nbl, color);
+
+			add_line(fbl, ftl, color);
+			add_line(ftl, ftr, color);
+			add_line(ftr, fbr, color);
+			add_line(fbr, fbl, color);
+
+			add_line(ntl, ftl, color);
+			add_line(nbl, fbl, color);
+			add_line(nbr, fbr, color);
+			add_line(ntr, ftr, color);
+		}
+
+		void draw_aabb(const aabb_t& aabb, bool in_frustum)
+		{
+			draw_aabb(aabb, !in_frustum
+				? float4(1, 1, 1, 1)
+				: float4(.3, 1, .3, 1));
+		}
 	}
 }

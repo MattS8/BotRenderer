@@ -59,6 +59,7 @@ namespace end
 
 		std::vector<pos_norm_uv_vertex>* terrain_verts;
 		std::vector<quad_t> terrain_quads;
+		std::vector<int> quads_to_draw;
 		bvh_t bvh_tree;
 
 		void update();
@@ -102,34 +103,14 @@ namespace end
 
 		void update_aabbs();
 
+		void update_terrain_aabbs();
+
 		// Draw functions
 		void draw_characters();
 
 		void draw_normal(float3 start, float3 end, float3 norm, 
 			float3 offset, float normDir);
 
-		void draw_aabb(const aabb_t& aabb, bool in_frustum);
-
-		void draw_aabb(const aabb_t& aabb, float4 color);
-
 		void draw_character_camera();
-	};
-
-	struct grid_colors
-	{
-		float4 increments[4];
-		union
-		{
-			struct
-			{
-				float4 horizontal_start;
-				float4 horizontal_end;
-				float4 vertical_start;
-				float4 vertical_end;
-			};
-			float4 colors[4];
-		};
-
-		void update();
 	};
 }

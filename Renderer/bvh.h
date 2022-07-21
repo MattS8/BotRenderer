@@ -1,4 +1,4 @@
-
+#pragma once
 #include <cstdint>
 #include <cassert>
 
@@ -84,6 +84,11 @@ namespace end
 			return _aabb;
 		}
 
+		void set_parent(uint32_t new_parent)
+		{
+			_parent = new_parent;
+		}
+
 	private:
 
 		// Indices for connected nodes
@@ -125,6 +130,7 @@ namespace end
 		//You will need to create a traversal function to render the aabb's as they collide on the way down
 		//You could create a callback function as well and that function does the collision tests and drawws the aabb lines
 		//a recursive depth-first function could work
+		void traverse_tree(uint32_t index, aabb_t target, std::vector<int>& quads_to_draw, end::grid_colors colors);
 
 		// Add an aabb/element_id pair to the bvh
 		void insert(const aabb_t& aabb, uint32_t element_id);

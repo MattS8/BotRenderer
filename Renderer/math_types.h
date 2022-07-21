@@ -299,4 +299,22 @@ namespace end
 		inline colored_vertex(const float3& p, const float3& c) : pos{ p }, color{ c.x, c.y, c.z, 1.0f } {}
 		inline colored_vertex(const float3& p, uint8_t r, uint8_t g, uint8_t b, uint8_t a = 255) : pos{ p }, color{ r/255.0f, g/255.0f, b/255.0f, a/255.0f } {}
 	};
+
+	struct grid_colors
+	{
+		float4 increments[4];
+		union
+		{
+			struct
+			{
+				float4 horizontal_start;
+				float4 horizontal_end;
+				float4 vertical_start;
+				float4 vertical_end;
+			};
+			float4 colors[4];
+		};
+
+		void update();
+	};
 }

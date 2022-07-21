@@ -35,5 +35,9 @@ namespace end
 		size_t get_line_vert_count();
 
 		size_t get_line_vert_capacity();
+
+		void draw_aabb(const aabb_t& aabb, bool in_frustum);
+
+		void draw_aabb(const aabb_t& aabb, float4 color);
 	}
 }

@@ -230,19 +230,21 @@ namespace end
 	void dev_app_t::initialize_terrain_aabbs()
 	{
 		initializers[Initializers::CHARACTER_AABB] = true;
-
+		initializers[Initializers::TERRAIN_AABBS] = true;
 		character_matrix[3][1] = 0;
 
-		unsigned int terrain_vert_count = terrain_verts->size();
-		terrain_quads.resize(terrain_vert_count / 6);
+		unsigned int terrain_vert_count = terrain_verts->size() / 6;
+		terrain_quads.reserve(terrain_vert_count);
 
-		for (int i = 5; i < terrain_vert_count; i+=6)
+		int count = 0;
+		for (int i = 0; count < terrain_vert_count; i = (count * 5) + count)
 		{
 			quad_t new_quad = {
-				{i - 5, i - 4, i - 3},
-				{i - 2, i - 1, i}
+				{i + 5, i + 4, i + 3},
+				{i + 2, i + 1, i}
 			};
 			terrain_quads.push_back(new_quad);
+			++count;
 		}
 
 		// Shuffle quads 
@@ -293,16 +295,46 @@ namespace end
 
 			aabb_t new_aabb = { new_center, new_extents };
 
-			// TODO: Insert quad into tree 
 			bvh_tree.insert(new_aabb, i);
 		}
 
-		std::cout << "Finished initializing terrain!\n";
+		// use grid for color magic!
+		debug_grid_colors.increments[0] = { 0.5f, 0.6f, 0.4f, 1.0f };
+		debug_grid_colors.increments[1] = { 0.5f, 0.5f, 0.5f, 1.0f };
+		debug_grid_colors.increments[2] = { 0.1f, 0.5f, 0.1f, 1.0f };
+		debug_grid_colors.increments[3] = { 1.0f, 1.0f, 1.0f, 1.0f };
+		debug_grid_colors.horizontal_start = { 1.0f, 0.0f, 0.0f, 1.0f };
+		debug_grid_colors.horizontal_end = { 1.0f, 1.0f, 0.0f, 1.0f };
+		debug_grid_colors.vertical_start = { 0.0f, 1.0f, 0.0f, 1.0f };
+		debug_grid_colors.vertical_end = { 0.0f, 1.0f, 1.0f, 1.0f };
 
+		std::cout << "Finished initializing terrain!\n";
 	}
 #pragma endregion
 
 #pragma region Update Functions
+	void dev_app_t::update_terrain_aabbs()
+	{
+		quads_to_draw.clear();
+		debug_grid_colors.update();
+		bvh_tree.traverse_tree(0, character_aabb, quads_to_draw, debug_grid_colors);
+
+		static const float4 wireframe_color = { 1.0f, 1.0f, 1.0f, 1.0f };
+		for (int i = 0; i < quads_to_draw.size(); i++)
+		{
+			quad_t& quad = terrain_quads[quads_to_draw[i]];
+			// Draw triangle 1 
+			debug_renderer::add_line((*terrain_verts)[quad.first.a].pos, (*terrain_verts)[quad.first.b].pos, wireframe_color);
+			debug_renderer::add_line((*terrain_verts)[quad.first.b].pos, (*terrain_verts)[quad.first.c].pos, wireframe_color);
+			debug_renderer::add_line((*terrain_verts)[quad.first.a].pos, (*terrain_verts)[quad.first.c].pos, wireframe_color);
+
+			// Draw triangle 2 
+			debug_renderer::add_line((*terrain_verts)[quad.second.a].pos, (*terrain_verts)[quad.second.b].pos, wireframe_color);
+			debug_renderer::add_line((*terrain_verts)[quad.second.b].pos, (*terrain_verts)[quad.second.c].pos, wireframe_color);
+			debug_renderer::add_line((*terrain_verts)[quad.second.a].pos, (*terrain_verts)[quad.second.c].pos, wireframe_color);
+		}
+	}
+
 	void dev_app_t::update_mouseX(long deltaX)
 	{
 		if (mouseStates[D_VK_RMB] || mouseStates[D_VK_LMB])
@@ -523,13 +555,13 @@ namespace end
 	{
 		for (auto aabb = aabbs.begin(); aabb != aabbs.end(); aabb++)
 		{
-			draw_aabb(*aabb, aabb_to_frustum(*aabb, character_frustum));
+			debug_renderer::draw_aabb(*aabb, aabb_to_frustum(*aabb, character_frustum));
 		}
 	}
 
 	void dev_app_t::update_character_aabb()
 	{
-		static const float3 aabb_CharacterExtents = { 0.5f, 1.5f, 0.5f };
+		static const float3 aabb_CharacterExtents = { 0.5f, 2.5f, 0.5f };
 		static const float4 character_aabb_color = { 0.2f, 0.2f, 1.0f, 1.0f };
 
 		float3 character_position = float3(
@@ -541,7 +573,7 @@ namespace end
 		character_aabb.center = character_position;
 		character_aabb.extents = aabb_CharacterExtents;
 
-		draw_aabb(character_aabb, character_aabb_color);
+		debug_renderer::draw_aabb(character_aabb, character_aabb_color);
 	}
 
 	void grid_colors::update()
@@ -684,68 +716,6 @@ namespace end
 		draw_normal(p.NBL, p.FBR, character_frustum[5].normal, offset, 1);
 
 	}
-
-	void dev_app_t::draw_aabb(const aabb_t& aabb, float4 color)
-	{
-		float3 nbl = float3(
-			aabb.center.x - aabb.extents.x,
-			aabb.center.y - aabb.extents.y,
-			aabb.center.z - aabb.extents.z);
-		float3 nbr = float3(
-			aabb.center.x + aabb.extents.x,
-			aabb.center.y - aabb.extents.y,
-			aabb.center.z - aabb.extents.z);
-		float3 ntl = float3(
-			aabb.center.x - aabb.extents.x,
-			aabb.center.y + aabb.extents.y,
-			aabb.center.z - aabb.extents.z
-		);
-		float3 ntr = float3(
-			aabb.center.x + aabb.extents.x,
-			aabb.center.y + aabb.extents.y,
-			aabb.center.z - aabb.extents.z
-		);
-		float3 fbl = float3(
-			aabb.center.x - aabb.extents.x,
-			aabb.center.y - aabb.extents.y,
-			aabb.center.z + aabb.extents.z);
-		float3 fbr = float3(
-			aabb.center.x + aabb.extents.x,
-			aabb.center.y - aabb.extents.y,
-			aabb.center.z + aabb.extents.z);
-		float3 ftl = float3(
-			aabb.center.x - aabb.extents.x,
-			aabb.center.y + aabb.extents.y,
-			aabb.center.z + aabb.extents.z
-		);
-		float3 ftr = float3(
-			aabb.center.x + aabb.extents.x,
-			aabb.center.y + aabb.extents.y,
-			aabb.center.z + aabb.extents.z
-		);
-
-		end::debug_renderer::add_line(nbl, ntl, color);
-		end::debug_renderer::add_line(ntl, ntr, color);
-		end::debug_renderer::add_line(ntr, nbr, color);
-		end::debug_renderer::add_line(nbr, nbl, color);
-
-		end::debug_renderer::add_line(fbl, ftl, color);
-		end::debug_renderer::add_line(ftl, ftr, color);
-		end::debug_renderer::add_line(ftr, fbr, color);
-		end::debug_renderer::add_line(fbr, fbl, color);
-
-		end::debug_renderer::add_line(ntl, ftl, color);
-		end::debug_renderer::add_line(nbl, fbl, color);
-		end::debug_renderer::add_line(nbr, fbr, color);
-		end::debug_renderer::add_line(ntr, ftr, color);
-	}
-
-	void dev_app_t::draw_aabb(const aabb_t& aabb, bool in_frustum)
-	{
-		draw_aabb(aabb, !in_frustum
-			? float4(1, 1, 1, 1)
-			: float4(.3, 1, .3, 1));
-	}
 #pragma endregion
 
 #pragma endregion
@@ -846,7 +816,7 @@ namespace end
 		// Update Terrain AABBs 
 		if (initializers[Initializers::TERRAIN_AABBS])
 		{
-
+			update_terrain_aabbs();
 		}
 	}
 }
